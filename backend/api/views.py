@@ -1,13 +1,20 @@
+from django.contrib.auth import get_user_model
 from rest_framework import viewsets, permissions, filters
 from rest_framework.pagination import LimitOffsetPagination
+from djoser.views import UserViewSet
+from rest_framework.permissions import AllowAny
 
 from .mixins import ListCreateMixin
 from .permissions import AuthorOrReadOnly
-from .serializers import RecipeSerializer, FollowSerializer, TagSerializer, UserSerializer
-from recipes.models import Recipe, Tag
-from users.models import User
+from .serializers import RecipeSerializer, FollowSerializer, TagSerializer, \
+	IngredientSerializer
+from recipes.models import Recipe, Tag, Ingredient
 
+User = get_user_model()
 
+# Если вы решите использовать вьюсеты, то вам потребуется добавлять дополнительные action.
+# Не забывайте о том, что для разных action сериализаторы и уровни доступа (permissions) могут отличаться.
+# Некоторые методы, в том числе и action, могут быть похожи друг на друга. Избегайте дублирующегося кода.
 class RecipeViewSet(viewsets.ModelViewSet):
 	"""List of all recipes."""
 
@@ -17,14 +24,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
 		AuthorOrReadOnly,
 		permissions.IsAuthenticatedOrReadOnly
 	)
-	pagination_class = LimitOffsetPagination
+	# pagination_class = LimitOffsetPagination
 
 	def perform_create(self, serializer):
 		serializer.save(author=self.request.user)
 
 
 class IngredientViewSet(viewsets.ModelViewSet):
-	pass
+	queryset = Ingredient.objects.all
+	permission_classes = (AllowAny, )
+	serializer_class = IngredientSerializer
+	# filter_backends = [IngredientSearchFilter]
 
 
 class FollowViewSet(ListCreateMixin):
@@ -56,13 +66,16 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 	queryset = Tag.objects.all()
 	serializer_class = TagSerializer
 
-class UserViewSet(viewsets.ReadOnlyModelViewSet):
-	"""List of the users."""
-
-	queryset = User.objects.all()
-	serializer_class = UserSerializer
+# class UserListViewSet(viewsets.ReadOnlyModelViewSet):
+# 	"""List of the users."""
+#
+# 	queryset = User.objects.all()
+# 	serializer_class = UserListSerializer
 
 
 class ShoppingCartViewSet(viewsets.ModelViewSet):
 	pass
 
+
+# class CustomUserViewSet(UserViewSet):
+# 	serializer_class = CustomUserSerializer

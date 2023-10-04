@@ -2,7 +2,7 @@ import os
 from datetime import timedelta
 from pathlib import Path
 
-
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'foodgram.settings')
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = 'django-insecure-e+#w@iu_oudj94udu$mh2!u-*=#pn4^ci8p!8rr_jd6qh+b$!_'
@@ -108,20 +108,33 @@ STATIC_ROOT = BASE_DIR / 'collected_static'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+CSV_FILES_DIR = os.path.join(BASE_DIR, 'data')
+
+
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+
+    # 'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    #     'PAGE_SIZE': 6,
 }
 
 
 SIMPLE_JWT = {
    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
    'AUTH_HEADER_TYPES': ('Bearer',),
+}
+
+DJOSER = {'LOGIN_FIELD': 'email',
+          'SERIALIZERS': {
+              'user': 'djoser.serializers.UserSerializer',
+              'current_user': 'djoser.serializers.UserSerializer',
+          },
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
