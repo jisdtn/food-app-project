@@ -1,10 +1,11 @@
 from django.contrib.auth import get_user_model
-from rest_framework import serializers
-from rest_framework.fields import MultipleChoiceField
-from rest_framework.validators import UniqueTogetherValidator
-from djoser.serializers import UserCreateSerializer
+from django.core.exceptions import ValidationError
+from djoser.serializers import UserCreateSerializer, UserSerializer
+from drf_extra_fields.fields import Base64ImageField
+from rest_framework import serializers, status
+from rest_framework.fields import SerializerMethodField
 
-from recipes.models import Recipe, Tag, Ingredient, IngredientInRecipe
+from recipes.models import Ingredient, IngredientInRecipe, Recipe, Tag
 from users.models import Follow
 
 User = get_user_model()
@@ -40,77 +41,50 @@ class RecipeSerializer(serializers.ModelSerializer):
 		model = Recipe
 		fields = ('id', 'author', 'ingredients', 'tags', 'image', 'name', 'text', 'cooking_time')
 
-	def create(self, validated_data):
-		if 'ingredients' and 'tags' not in self.initial_data:
-			recipe = Recipe.objects.create(**validated_data)
-			return recipe
-		ingredients = validated_data.pop('ingredients')
-		recipe = Recipe.objects.create(**validated_data)
-		for ingredient in ingredients:
-			current_ingredient, status = Ingredient.objects.get_or_create(
-				**ingredient
-			)
-			IngredientInRecipe.objects.create(
-				ingredient=current_ingredient, recipe=recipe
-			)
-		return recipe
+	# def create(self, validated_data):
+	# 	if 'ingredients' and 'tags' not in self.initial_data:
+	# 		recipe = Recipe.objects.create(**validated_data)
+	# 		return recipe
+	# 	ingredients = validated_data.pop('ingredients')
+	# 	recipe = Recipe.objects.create(**validated_data)
+	# 	for ingredient in ingredients:
+	# 		current_ingredient, status = Ingredient.objects.get_or_create(
+	# 			**ingredient
+	# 		)
+	# 		IngredientInRecipe.objects.create(
+	# 			ingredient=current_ingredient, recipe=recipe
+	# 		)
+	# 	return recipe
+	#
+	# def update(self, instance, validated_data):
+	# 	instance.name = validated_data.get('name', instance.name)
+	# 	instance.text = validated_data.get('text', instance.text)
+	# 	instance.cooking_time = validated_data.get(
+	# 		'cooking_time', instance.cooking_time
+	# 	)
+	# 	instance.image = validated_data.get('image', instance.image)
+	#
+	# 	if 'ingredients' and 'tags' not in validated_data:
+	# 		instance.save()
+	# 		return instance
+	#
+	# 	ingredients_data = validated_data.pop('ingredients')
+	# 	tags_data = validated_data.pop('tags')
+	# 	lst = []
+	# 	for ingredient in ingredients_data:
+	# 		current_ingredient, status = Ingredient.objects.get_or_create(
+	# 			**ingredient
+	# 		)
+	# 		lst.append(current_ingredient)
+	# 	instance.ingredients.set(lst)
+	#
+	# 	instance.save()
+	# 	return instance
 
-	def update(self, instance, validated_data):
-		instance.name = validated_data.get('name', instance.name)
-		instance.text = validated_data.get('text', instance.text)
-		instance.cooking_time = validated_data.get(
-			'cooking_time', instance.cooking_time
-		)
-		instance.image = validated_data.get('image', instance.image)
-
-		if 'ingredients' and 'tags' not in validated_data:
-			instance.save()
-			return instance
-
-		ingredients_data = validated_data.pop('ingredients')
-		tags_data = validated_data.pop('tags')
-		lst = []
-		for ingredient in ingredients_data:
-			current_ingredient, status = Ingredient.objects.get_or_create(
-				**ingredient
-			)
-			lst.append(current_ingredient)
-		instance.ingredients.set(lst)
-
-		instance.save()
-		return instance
 
 # class IngredientInRecipeSerializer(serializers.ModelSerializer):
 # 	pass
-class FollowSerializer(serializers.ModelSerializer):
-	user = serializers.SlugRelatedField(
-		slug_field='username',
-		read_only=True,
-		default=serializers.CurrentUserDefault()
-	)
 
-	following = serializers.SlugRelatedField(
-		slug_field='username',
-		queryset=User.objects.all()
-	)
-
-	class Meta:
-		model = Follow
-		fields = '__all__'
-		validators = [
-			UniqueTogetherValidator(
-				queryset=Follow.objects.all(),
-				fields=['user', 'following'],
-				message='You are already subscribed'
-			)
-		]
-
-	def validate_following(self, value):
-		if self.context['request'].user == value:
-			raise serializers.ValidationError(
-				'You can not follow yourself'
-			)
-		return value
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -120,12 +94,79 @@ class TagSerializer(serializers.ModelSerializer):
 		fields = ('id', 'name', 'color', 'slug')
 
 
-class UserListSerializer(serializers.ModelSerializer):
+class SmallRecipeSerializer(serializers.ModelSerializer):
+	image = Base64ImageField()
+
+	class Meta:
+		model = Recipe
+		fields = ('id', 'name', 'image', 'cooking_time')
+		read_only_fields = ('id', 'name', 'image', 'cooking_time')
+
+class CustomUserCreateSerializer(UserCreateSerializer):
 	class Meta:
 		model = User
+		fields = tuple(User.REQUIRED_FIELDS) + (
+			User.USERNAME_FIELD,
+			'password'
+		)
 
-class ProfileSerializer(UserCreateSerializer):
+
+class CustomUserSerializer(UserSerializer):
 	is_subscribed = serializers.SerializerMethodField(read_only=True)
 	class Meta:
 		model = User
-		fields = ('email', 'id', 'username', 'first_name', 'last_name', 'is_subscribed ')
+		fields = (
+			'email',
+			'id',
+			'username',
+			'last_name',
+			'first_name',
+			'is_subscribed',
+		)
+
+	def get_is_subscribed(self, obj):
+		user = self.context.get('request').user
+		if user.is_anonymous:
+			return False
+		return Follow.objects.filter(user=user, author=obj).exists()
+
+
+class FollowSerializer(CustomUserSerializer):
+	recipes_count = SerializerMethodField()
+	recipes = SerializerMethodField()
+
+	class Meta(CustomUserSerializer):
+		fields = CustomUserSerializer.Meta.fields + (
+			'recipes_count',
+			'recipes',
+		)
+		read_only_fields = ('email', 'username')
+
+	def validate(self, data):
+		author = self.instance
+		user = self.context.get('request').user
+		if Follow.objects.filter(author=author, user=user).exists():
+			raise ValidationError(
+				message='You are already subscribed this user',
+				code=status.HTTP_400_BAD_REQUEST
+			)
+		if user == author:
+			raise ValidationError(
+				message='You can not follow yourself',
+				code=status.HTTP_400_BAD_REQUEST
+			)
+		return data
+
+	def get_recipes_count(self, obj):
+		return obj.recipes.count()
+
+	def get_recipes(self, obj):
+		request = self.context.get('request')
+		limit = request.GET.get('recipes_limit')
+		recipes = obj.recipes.all()
+		if limit:
+			recipes = recipes[:int(limit)]
+		serializer = SmallRecipeSerializer(recipes, many=True, read_only=True)
+		return serializer.data
+
+

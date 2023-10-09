@@ -2,9 +2,10 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django.db.models import Count
 
-from users.models import Follow, Favorite
-from .models import Ingredient, Tag, Recipe
+from users.models import Follow
+from .models import Ingredient, Tag, Recipe, Favorite
 
+# в админке не хватает ток общее число сохраненок рецептов вывести
 User = get_user_model
 
 admin.site.register(Tag)
@@ -24,7 +25,7 @@ class RecipeAdmin(admin.ModelAdmin):
 
 # def get_queryset(self, request):
 # 		queryset = super().get_queryset(request)
-# 		return queryset.annotate(favorite_count=Count('favored_by'))  # здесь вывести название и автора рецепта
+# 		return queryset.annotate(favorite_count=Count('favored_by'))
 #
 # 	@staticmethod
 # 	def get_favorites_count(obj):

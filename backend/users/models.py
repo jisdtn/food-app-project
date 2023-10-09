@@ -1,42 +1,27 @@
-from django.contrib.auth import get_user_model
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 
-from recipes.models import Recipe
 
-User = get_user_model()
-
-class Favorite(models.Model):
-	objects = models.Manager()
-	user = models.ForeignKey(
-		User,
-		on_delete=models.CASCADE,
-		related_name='favored_by',
-		verbose_name='Пользователь'
-	)
-	recipe = models.ForeignKey(
-		Recipe,
-		on_delete=models.CASCADE,
-		related_name='favorite_recipe',
-		verbose_name='Рецепт'
-	)
-	date_added = models.DateTimeField(
-		auto_now_add=True,
-		null=True,
-		blank=True,
-		verbose_name='Дата добавления',
+class User(AbstractUser):
+	USERNAME_FIELD = 'email'
+	REQUIRED_FIELDS = [
+		'username',
+		'first_name',
+		'last_name',
+	]
+	email = models.EmailField(
+		'email',
+		max_length=254,
+		unique=True,
 	)
 
 	class Meta:
-		verbose_name = 'Избранное'
-		verbose_name_plural = 'Избранное'
-		constraints = [
-			models.UniqueConstraint(
-				fields=['user', 'recipe'], name='favorite_user_recept_unique'
-			)
-		]
+		ordering = ['id']
+		verbose_name = 'User'
+		verbose_name_plural = 'Users'
 
 	def __str__(self):
-		return f'Рецепт "{self.recipe}" в избранном у {self.user}'
+		return self.username
 
 
 class Follow(models.Model):

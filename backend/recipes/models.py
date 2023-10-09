@@ -8,7 +8,7 @@ User = get_user_model()
 class Ingredient(models.Model):
 	objects = models.Manager()
 	name = models.CharField(max_length=200, db_index=True)
-	measurement_unit = models.TextField()
+	measurement_unit = models.CharField(max_length=50)
 
 	class Meta:
 		unique_together = ('name', 'measurement_unit')
@@ -31,16 +31,19 @@ class Tag(models.Model):
 class Recipe(models.Model):
 	objects = models.Manager()
 	author = models.ForeignKey(
-		User, on_delete=models.CASCADE, related_name='recipes')
+		User, on_delete=models.CASCADE, related_name='recipes'
+	)
 	ingredients = models.ManyToManyField(
 		Ingredient,
-		through='IngredientInRecipe')
-
-	tags = models.ForeignKey(
-		Tag, on_delete=models.SET_NULL,
-        related_name='recipes', blank=True, null=True)
+		through='IngredientInRecipe'
+	)
+	tags = models.ManyToManyField(
+		Tag,
+        related_name='recipes'
+	)
 	image = models.ImageField(
-		upload_to='recipes/images', null=True, blank=True)
+		upload_to='recipes/images', null=True, blank=True
+	)
 	name = models.CharField(max_length=200)
 	text = models.TextField()
 	cooking_time = models.IntegerField(validators=[MinValueValidator(1)])
@@ -69,3 +72,37 @@ class IngredientInRecipe(models.Model):
 
 	def __str__(self):
 		return f'Ingredient "{self.ingredient}" for the "{self.recipe}" recipe'
+
+
+class Favorite(models.Model):
+	objects = models.Manager()
+	user = models.ForeignKey(
+		User,
+		on_delete=models.CASCADE,
+		related_name='favored_by',
+		verbose_name='User'
+	)
+	recipe = models.ForeignKey(
+		Recipe,
+		on_delete=models.CASCADE,
+		related_name='favorite_recipe',
+		verbose_name='Recipe'
+	)
+	date_added = models.DateTimeField(
+		auto_now_add=True,
+		null=True,
+		blank=True,
+		verbose_name='Added',
+	)
+
+	class Meta:
+		verbose_name = 'Favorite'
+		verbose_name_plural = 'Favorite'
+		constraints = [
+			models.UniqueConstraint(
+				fields=['user', 'recipe'], name='favorite_user_recept_unique'
+			)
+		]
+
+	def __str__(self):
+		return f'Рецепт "{self.recipe}" в избранном у {self.user}'
