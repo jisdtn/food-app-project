@@ -1,5 +1,4 @@
 import os
-from datetime import timedelta
 from pathlib import Path
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'foodgram.settings')
@@ -20,9 +19,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'rest_framework',
+    'rest_framework.authtoken',
     'djoser',
     'django_filters',
+
     'api',
     'recipes',
     'users',
@@ -115,23 +117,14 @@ CSV_FILES_DIR = os.path.join(BASE_DIR, 'data')
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+        'rest_framework.permissions.AllowAny',
     ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ],
 
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-        'PAGE_SIZE': 6,
-
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
-}
-
-
-SIMPLE_JWT = {
-   'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-   'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
 DJOSER = {'LOGIN_FIELD': 'email',
@@ -140,6 +133,11 @@ DJOSER = {'LOGIN_FIELD': 'email',
               'user': 'api.serializers.CustomUserSerializer',
               'current_user': 'api.serializers.CustomUserSerializer',
           },
+          'PERMISSIONS': {
+              'user': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
+              'user_list': ['rest_framework.permissions.AllowAny'],
+          },
+          'HIDE_USERS': False,
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

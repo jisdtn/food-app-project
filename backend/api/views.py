@@ -2,13 +2,13 @@ from django.contrib.auth import get_user_model
 from django.shortcuts import get_object_or_404
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
-from rest_framework.pagination import PageNumberPagination
 from djoser.views import UserViewSet
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
 from users.models import Follow
 from .mixins import ListCreateMixin
+from .pagination import CustomPagination
 from .permissions import AuthorOrReadOnly
 from .serializers import RecipeSerializer, FollowSerializer, TagSerializer, \
 	IngredientSerializer, CustomUserSerializer
@@ -78,7 +78,7 @@ class ShoppingCartViewSet(viewsets.ModelViewSet):
 class CustomUserViewSet(UserViewSet):
 	queryset = User.objects.all()
 	serializer_class = CustomUserSerializer
-	pagination_class = PageNumberPagination
+	pagination_class = CustomPagination
 
 	@action(
 		detail=True,

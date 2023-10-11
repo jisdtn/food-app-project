@@ -9,12 +9,8 @@ from .models import Ingredient, Tag, Recipe, Favorite
 User = get_user_model
 
 admin.site.register(Tag)
-admin.site.register(Follow)
 admin.site.register(Favorite)
 
-# @admin.register(User)
-# class UserAdmin(admin.ModelAdmin):
-# 	list_filter = ['email', 'name']
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):

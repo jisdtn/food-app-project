@@ -107,7 +107,7 @@ class CustomUserCreateSerializer(UserCreateSerializer):
 		model = User
 		fields = tuple(User.REQUIRED_FIELDS) + (
 			User.USERNAME_FIELD,
-			'password'
+			'password', 'id'
 		)
 
 
@@ -128,7 +128,7 @@ class CustomUserSerializer(UserSerializer):
 		user = self.context.get('request').user
 		if user.is_anonymous:
 			return False
-		return Follow.objects.filter(user=user, author=obj).exists()
+		return Follow.objects.filter(user=user, following=obj).exists()
 
 
 class FollowSerializer(CustomUserSerializer):
