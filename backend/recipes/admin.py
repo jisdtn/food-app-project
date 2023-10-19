@@ -1,34 +1,36 @@
 from django.contrib import admin
+from django.contrib.admin import display
 from django.contrib.auth import get_user_model
-from django.db.models import Count
+from .models import Ingredient, Tag, Recipe, Favorite, ShoppingCart, IngredientInRecipe
 
-from users.models import Follow
-from .models import Ingredient, Tag, Recipe, Favorite
-
-# в админке не хватает ток общее число сохраненок рецептов вывести
 User = get_user_model
 
 admin.site.register(Tag)
 admin.site.register(Favorite)
 
+class IngredientInRecipeAdmin(admin.StackedInline):
+	model = IngredientInRecipe
+	autocomplete_fields = ('ingredient',)
 
 @admin.register(Recipe)
 class RecipeAdmin(admin.ModelAdmin):
-	list_display = ['name', 'author']
-	list_filter = ('author', 'tags__name', 'name')
+	list_display = ('id', 'name', 'author', 'get_in_favorites_count')
+	readonly_fields = ('get_in_favorites_count',)
+	list_filter = ('author', 'tags', 'name')
 	search_fields = ('name', 'author__username')
 	ordering = ('-pub_date',)
+	inlines = (IngredientInRecipeAdmin,)
 
-# def get_queryset(self, request):
-# 		queryset = super().get_queryset(request)
-# 		return queryset.annotate(favorite_count=Count('favored_by'))
-#
-# 	@staticmethod
-# 	def get_favorites_count(obj):
-# 		return obj.favorite_count
+	@display(description='In favorite amount')
+	def get_in_favorites_count(self, obj):
+		return Favorite.objects.filter(recipe=obj).count()
 
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
 	list_display = ['name', 'measurement_unit']
 	search_fields = ('^name',)
+
+@admin.register(ShoppingCart)
+class ShoppingCartAdmin(admin.ModelAdmin):
+	list_display = ('user', 'recipe',)

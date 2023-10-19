@@ -1,10 +1,13 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'foodgram.settings')
+load_dotenv()
+
+SECRET_KEY = os.getenv('SECRET_KEY')
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-e+#w@iu_oudj94udu$mh2!u-*=#pn4^ci8p!8rr_jd6qh+b$!_'
 
 DEBUG = True
 
@@ -124,7 +127,6 @@ REST_FRAMEWORK = {
         'rest_framework.authentication.TokenAuthentication',
     ],
 
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend']
 }
 
 DJOSER = {'LOGIN_FIELD': 'email',

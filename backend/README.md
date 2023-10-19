@@ -1,1 +1,76 @@
-# praktikum_new_diplom
+*Note для ревьюера: пока только бэк, он дался не просто, 
+так что пока не рискую деплоить*
+
+### Дипломный проект 
+
+### [Foodgram](http://example.com/ "К рецептам") *здесь будет ссылка на мой домен*
+
+Foodgram - это сайт, на котором пользователи могут 
+публиковать рецепты, добавлять чужие рецепты в избранное и подписываться на публикации других авторов. 
+Пользователям сайта также будет доступен сервис «Список покупок». 
+Он позволит создавать список продуктов, 
+которые нужно купить для приготовления выбранных блюд.
+
+```commandline
+Реализован backend, API, задеплоен на сервер в контейнерах: 
+nginx, PostgreSQL и Django через docker-compose 
+
+# пока не задеплоен и база SQLite
+```
+### Как запустить бэкенд локально: 
+
+Клонировать репозиторий и перейти в него в командной строке:
+
+```
+git clone https://github.com/jisdtn/foodgram-project-react
+```
+
+```
+cd foodgram-project-react
+```
+
+Cоздать и активировать виртуальное окружение:
+
+```
+python3 -m venv venv
+```
+
+```
+source venv/bin/activate
+```
+
+Установить зависимости из файла requirements.txt:
+
+```
+python3 -m pip install --upgrade pip
+```
+
+```
+pip install -r requirements.txt
+```
+
+Выполнить миграции:
+
+```
+python3 manage.py migrate
+```
+
+Запустить проект:
+
+```
+python3 manage.py runserver
+```
+### Примеры запросов к API.
+
+```commandline
+http://localhost/api/users/ ('GET')
+```
+```commandline
+http://localhost/api/recipes/{id}/ ('GET')
+```
+```commandline
+http://localhost/api/recipes/download_shopping_cart/ ('GET')
+```
+```commandline
+http://localhost/api/users/subscriptions/ ('GET')
+```

@@ -1,81 +1,154 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets, permissions, filters, status
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from djoser.views import UserViewSet
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.viewsets import ReadOnlyModelViewSet
 
 from users.models import Follow
-from .mixins import ListCreateMixin
+from .filters import IngredientSearchFilter, RecipeFilter
 from .pagination import CustomPagination
-from .permissions import AuthorOrReadOnly
+from .permissions import AuthorOrAdminOrReadOnly
 from .serializers import RecipeSerializer, FollowSerializer, TagSerializer, \
-	IngredientSerializer, CustomUserSerializer
-from recipes.models import Recipe, Tag, Ingredient
+	IngredientSerializer, CustomUserSerializer, RecipeListSerializer, FavoriteSerializer, ShoppingCartSerializer
+from recipes.models import Recipe, Tag, Ingredient, Favorite, ShoppingCart, IngredientInRecipe
 
 User = get_user_model()
 
-# Если вы решите использовать вьюсеты, то вам потребуется добавлять дополнительные action.
-# Не забывайте о том, что для разных action сериализаторы и уровни доступа (permissions) могут отличаться.
-# Некоторые методы, в том числе и action, могут быть похожи друг на друга. Избегайте дублирующегося кода.
+
 class RecipeViewSet(viewsets.ModelViewSet):
-	"""List of all recipes."""
+	"""CRUD for recipes."""
 
 	queryset = Recipe.objects.all()
-	serializer_class = RecipeSerializer
-	permission_classes = (
-		AuthorOrReadOnly,
-		permissions.IsAuthenticatedOrReadOnly
-	)
-	# pagination_class = LimitOffsetPagination
+	permission_classes = [AuthorOrAdminOrReadOnly, ]
+	pagination_class = CustomPagination
+	filterset_class = RecipeFilter
+	filter_backends = [DjangoFilterBackend, ]
 
 	def perform_create(self, serializer):
 		serializer.save(author=self.request.user)
 
+	def get_serializer_class(self):
+		if self.request.method == 'GET':
+			return RecipeListSerializer
+		return RecipeSerializer
 
-class IngredientViewSet(viewsets.ModelViewSet):
-	queryset = Ingredient.objects.all
+
+class IngredientViewSet(ReadOnlyModelViewSet):
+	"""List of the ingredients."""
+	queryset = Ingredient.objects.all()
 	permission_classes = (AllowAny, )
 	serializer_class = IngredientSerializer
-	# filter_backends = [IngredientSearchFilter]
+	filter_backends = (DjangoFilterBackend,)
+	filterset_class = IngredientSearchFilter
 
-
-class FollowViewSet(ListCreateMixin):
-	"""List of subscriptions."""
-
-	serializer_class = FollowSerializer
-	permission_classes = (permissions.IsAuthenticated, )
-	filter_backends = (filters.SearchFilter, filters.OrderingFilter)
-	search_fields = ('following__username',)
-	ordering_fields = ('following',)
-
-	def perform_create(self, serializer: FollowSerializer):
-		"""Creates subcriptions. Follower is a current user."""
-
-		serializer.save(user=self.request.user)
-
-	def get_queryset(self):
-		"""Returns the list of the subscriptions."""
-
-		return self.request.user.follower.all()
 
 class FavoriteViewSet(viewsets.ModelViewSet):
-	pass
+	"""List of the favorited recipes."""
+	queryset = Favorite.objects.all()
+	serializer_class = FavoriteSerializer
+	pagination_class = CustomPagination
+	permission_classes = [IsAuthenticated, ]
+
+	@action(
+		detail=True,
+		methods=['post'])
+	def add_to_fav(self, request, pk):
+		recipe = get_object_or_404(Recipe, id=pk)
+		value = {
+			'user': request.user.id,
+			'recipe': id
+		}
+		if not Favorite.objects.filter(user=request.user, recipe=recipe).exists():
+			serializer = FavoriteSerializer(value=value, context={'request': request})
+			if serializer.is_valid():
+				serializer.save()
+				return Response(serializer.data, status=status.HTTP_201_CREATED)
+		return Response(status=status.HTTP_400_BAD_REQUEST)
+
+	@action(
+		detail=True,
+		methods=['delete'])
+	def delete_from_fav(self, request, pk):
+		recipe = get_object_or_404(Recipe, id=pk)
+		if Favorite.objects.filter(user=request.user, recipe=recipe).exists():
+			Favorite.objects.filter(user=request.user, recipe=recipe).delete()
+			return Response(status=status.HTTP_204_NO_CONTENT)
+		return Response(status=status.HTTP_400_BAD_REQUEST)
 
 
 class TagViewSet(viewsets.ReadOnlyModelViewSet):
-	"""List of the tags."""
+	"""Tags representation."""
 
 	queryset = Tag.objects.all()
 	serializer_class = TagSerializer
 
 
 class ShoppingCartViewSet(viewsets.ModelViewSet):
-	pass
+	"""Shopping Cart actions"""
+	permission_classes = [IsAuthenticated, ]
+	queryset = ShoppingCart.objects.all()
+	serializer_class = ShoppingCartSerializer
+	pagination_class = CustomPagination
+	@action(
+		detail=True,
+		methods=['post'])
+	def add_to_shopping_cart(self, request, pk):
+		recipe = get_object_or_404(Recipe, id=pk)
+		value = {
+			'user': request.user.id,
+			'recipe': id
+		}
+		if not ShoppingCart.objects.filter(user=request.user, recipe=recipe).exists():
+			serializer = ShoppingCartSerializer(value=value, context={'request': request})
+			if serializer.is_valid():
+				serializer.save()
+				return Response(serializer.data, status=status.HTTP_201_CREATED)
+		return Response(status=status.HTTP_400_BAD_REQUEST)
+
+	@action(
+		detail=True,
+		methods=['delete'])
+	def delete_from_shopping_cart(self, request, pk):
+		recipe = get_object_or_404(Recipe, id=pk)
+		if ShoppingCart.objects.filter(user=request.user, recipe=recipe).exists():
+			ShoppingCart.objects.filter(user=request.user, recipe=recipe).delete()
+			return Response(status=status.HTTP_204_NO_CONTENT)
+		return Response(status=status.HTTP_400_BAD_REQUEST)
+
+	@action(
+		detail=False,
+		permission_classes=[IsAuthenticated],
+		methods=['get'])
+	def download_shopping_cart(self, request):
+		user = request.user
+		if not user.shopping_cart.exists():
+			return Response(status=status.HTTP_400_BAD_REQUEST)
+
+		ingredients = IngredientInRecipe.objects.filter(recipe__shopping_cart__user=request.user).values(
+			'ingredient__name',
+			'ingredient__measurement_unit'
+		).annotate(amount=Sum('amount'))
+
+		shopping_list = 'Groceries list'
+		for ingredient in ingredients:
+			shopping_list += (
+				f"\n{ingredient['ingredient__name']} "
+				f"{ingredient['ingredient__amount']} {ingredient['ingredient__measurement_unit']}"
+			)
+		file = f'{user.username}_shopping_list.pdf'
+		response = HttpResponse(shopping_list, content_type='application/pdf')
+		response['Content-Disposition'] = f'attachment; filename={file}'
+		return response
 
 
 class CustomUserViewSet(UserViewSet):
+	"""Users actions."""
 	queryset = User.objects.all()
 	serializer_class = CustomUserSerializer
 	pagination_class = CustomPagination

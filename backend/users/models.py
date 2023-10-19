@@ -41,6 +41,3 @@ class Follow(models.Model):
 		constraints = (models.UniqueConstraint(
             fields=['user', 'following'], name='unique_follower'),
         )
-
-class ShoppingCart(models.Model):
-	pass

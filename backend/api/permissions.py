@@ -1,7 +1,7 @@
 from rest_framework import permissions
 
 
-class AuthorOrReadOnly(permissions.BasePermission):
+class AuthorOrAdminOrReadOnly(permissions.BasePermission):
     message = 'Изменение чужого контента запрещено.'
 
     def has_permission(self, request, view):
@@ -14,4 +14,4 @@ class AuthorOrReadOnly(permissions.BasePermission):
         return (
             request.method in permissions.SAFE_METHODS
             or obj.author == request.user
-        )
+            or request.user.is_staff)
