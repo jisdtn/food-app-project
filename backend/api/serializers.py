@@ -1,14 +1,13 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
+from django.db.models import F
 from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from drf_extra_fields.fields import Base64ImageField
-from rest_framework import serializers, status
-from rest_framework.fields import SerializerMethodField
-from django.db.models import F
-
 from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
                             ShoppingCart, Tag)
+from rest_framework import serializers, status
+from rest_framework.fields import SerializerMethodField
 from users.models import Follow
 
 User = get_user_model()
@@ -216,7 +215,9 @@ class FollowSerializer(CustomUserSerializer):
     recipes_count = SerializerMethodField()
     recipes = SerializerMethodField()
 
-    class Meta(CustomUserSerializer):
+    class Meta(CustomUserSerializer.Meta):
+
+        model = User
         fields = CustomUserSerializer.Meta.fields + (
             'recipes_count',
             'recipes',
@@ -224,14 +225,14 @@ class FollowSerializer(CustomUserSerializer):
         read_only_fields = ('email', 'username')
 
     def validate(self, data):
-        author = self.instance
+        following = self.instance
         user = self.context.get('request').user
-        if Follow.objects.filter(author=author, user=user).exists():
+        if Follow.objects.filter(following=following, user=user).exists():
             raise ValidationError(
                 message='You are already subscribed this user',
                 code=status.HTTP_400_BAD_REQUEST
             )
-        if user == author:
+        if user == following:
             raise ValidationError(
                 message='You can not follow yourself',
                 code=status.HTTP_400_BAD_REQUEST
@@ -257,8 +258,9 @@ class FavoriteSerializer(serializers.ModelSerializer):
         fields = ('user', 'recipe')
 
     def validate(self, data):
-        user = data['user']
-        if user.favorites.filter(recipe=data['recipe']).exists():
+        if Favorite.objects.filter(
+                user=data['user'],
+                recipe=data['recipe']).exists():
             raise serializers.ValidationError(
                 'the recipe is alredy added to favorited'
             )
@@ -277,8 +279,10 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         fields = ('user', 'recipe')
 
     def validate(self, data):
-        user = data['user']
-        if user.favorites.filter(recipe=data['recipe']).exists():
+        if ShoppingCart.objects.filter(
+                user=data['user'],
+                recipe=data['recipe']
+        ).exists():
             raise serializers.ValidationError(
                 'the recipe is alredy added to a shopping cart'
             )
