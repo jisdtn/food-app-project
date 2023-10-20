@@ -1,16 +1,21 @@
+# flake8: noqa
 import os
-from datetime import timedelta
 from pathlib import Path
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-e+#w@iu_oudj94udu$mh2!u-*=#pn4^ci8p!8rr_jd6qh+b$!_'
 
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+AUTH_USER_MODEL = 'users.User'
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -19,8 +24,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'rest_framework',
+    'rest_framework.authtoken',
     'djoser',
+    'django_filters',
+
     'api',
     'recipes',
     'users',
@@ -108,20 +117,31 @@ STATIC_ROOT = BASE_DIR / 'collected_static'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+CSV_FILES_DIR = os.path.join(BASE_DIR, 'data')
+
+
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',
     ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
     ],
+
 }
 
-
-SIMPLE_JWT = {
-   'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
-   'AUTH_HEADER_TYPES': ('Bearer',),
+DJOSER = {'LOGIN_FIELD': 'email',
+          'SERIALIZERS': {
+              'user_create': 'api.serializers.CustomUserCreateSerializer',
+              'user': 'api.serializers.CustomUserSerializer',
+              'current_user': 'api.serializers.CustomUserSerializer',
+          },
+          'PERMISSIONS': {
+              'user': ['djoser.permissions.CurrentUserOrAdminOrReadOnly'],
+              'user_list': ['rest_framework.permissions.AllowAny'],
+          },
+          'HIDE_USERS': False,
 }
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
