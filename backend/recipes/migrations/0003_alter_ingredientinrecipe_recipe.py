@@ -6,15 +6,18 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('recipes', '0002_auto_20231013_1352'),
+        ("recipes", "0002_auto_20231013_1352"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='ingredientinrecipe',
-            name='recipe',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='ingredientinrecipe', to='recipes.recipe'),
+            model_name="ingredientinrecipe",
+            name="recipe",
+            field=models.ForeignKey(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="ingredientinrecipe",
+                to="recipes.recipe",
+            ),
         ),
     ]
