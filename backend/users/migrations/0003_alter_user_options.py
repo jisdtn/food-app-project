@@ -4,14 +4,17 @@ from django.db import migrations
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('users', '0002_delete_shoppingcart'),
+        ("users", "0002_delete_shoppingcart"),
     ]
 
     operations = [
         migrations.AlterModelOptions(
-            name='user',
-            options={'ordering': ('id',), 'verbose_name': 'User', 'verbose_name_plural': 'Users'},
+            name="user",
+            options={
+                "ordering": ("id",),
+                "verbose_name": "User",
+                "verbose_name_plural": "Users",
+            },
         ),
     ]

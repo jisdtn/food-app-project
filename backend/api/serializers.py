@@ -1,20 +1,16 @@
+from collections import OrderedDict
+
 from django.contrib.auth import get_user_model
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
-from django.shortcuts import get_object_or_404
+from django.core.exceptions import ValidationError
 from django.db.models import F
-from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from drf_extra_fields.fields import Base64ImageField
-from recipes.models import (
-    Favorite,
-    Ingredient,
-    IngredientInRecipe,
-    Recipe,
-    ShoppingCart,
-    Tag,
-)
 from rest_framework import serializers, status
 from rest_framework.fields import SerializerMethodField
+
+
+from recipes.models import Ingredient, IngredientInRecipe, Recipe, Tag
 from users.models import Follow
 
 User = get_user_model()
@@ -77,7 +73,12 @@ class CustomUserSerializer(UserSerializer):
         if not request:
             return False
         user = request.user
-        return user and user.is_authenticated and user.following.filter(following=obj).exists()
+        return (
+            user
+            and user.is_authenticated
+            and user.following.filter(following=obj).exists()
+        )
+
 
 class RecipeSerializer(serializers.ModelSerializer):
     ingredients = AddIngredientSerializer(many=True)
@@ -100,45 +101,63 @@ class RecipeSerializer(serializers.ModelSerializer):
             "cooking_time",
         )
 
-    def validate_ingredients(self, data):
-        ingredients = data
-        if not ingredients:
-            raise serializers.ValidationError("you need at least one ingredient")
+    def validate(self, data):
+        if "ingredients" not in data:
+            raise serializers.ValidationError(
+                "you need at least one ingredient"
+            )
 
+        if "tags" not in data:
+            raise serializers.ValidationError(
+                "you have to choose at least one tag"
+            )
+
+        if not data["image"]:
+            raise serializers.ValidationError("add a picture")
+
+        return data
+
+    def validate_ingredients(self, ingredients):
+        if len(ingredients) == 0:
+            raise ValidationError(
+                "you need at least one ingredient"
+            )
         ingredients_list = []
         for i in ingredients:
             try:
                 ingredient = get_object_or_404(Ingredient, id=i["id"])
             except Exception:
-                raise serializers.ValidationError("ingredient does not exist")
+                raise serializers.ValidationError(
+                    "ingredient does not exist"
+                )
 
             if ingredient in ingredients_list:
-                raise serializers.ValidationError("ingredients should be unique")
+                raise serializers.ValidationError(
+                    "ingredients should be unique"
+                )
             if int(i["amount"]) <= 0:
-                raise serializers.ValidationError("ingredient amount should be at least 1")
+                raise serializers.ValidationError(
+                    "ingredient amount should be at least 1"
+                )
             ingredients_list.append(ingredient)
-        return data
 
-    # def validate_tags(self, data):
-    #     tags = data
-    #     if not tags:
-    #         raise serializers.ValidationError("you have to choose at least one tag")
-    #     tags_list = []
-    #     for tag in tags:
-    #         if tag in tags_list:
-    #             raise serializers.ValidationError("tags should be unique")
-    #         tags_list.append(tag)
-    #     return data
+        return ingredients
 
-    def validate_image(self, data):
-        image = data
-        if not image:
-            raise serializers.ValidationError("add a picture")
-        return data
+    def validate_tags(self, tags):
+        if len(tags) == 0:
+            raise serializers.ValidationError(
+                "you have to choose at least one tag"
+            )
+        if len(tags) != len(set(tags)):
+            raise serializers.ValidationError("tags should be unique")
+
+        return tags
 
     def create_ingredients(self, ingredients, recipe):
         if not ingredients:
-            raise serializers.ValidationError("you need at least one ingredient")
+            raise serializers.ValidationError(
+                "you need at least one ingredient"
+            )
         for i in ingredients:
             ingredient = Ingredient.objects.get(id=i["id"])
             IngredientInRecipe.objects.create(
@@ -146,7 +165,7 @@ class RecipeSerializer(serializers.ModelSerializer):
             )
 
     def create(self, validated_data):
-        image = validated_data.pop('image')
+        image = validated_data.pop("image")
         tags = validated_data.pop("tags")
         ingredients = validated_data.pop("ingredients")
         recipe = Recipe.objects.create(image=image, **validated_data)
@@ -155,12 +174,13 @@ class RecipeSerializer(serializers.ModelSerializer):
         return recipe
 
     def update(self, instance, validated_data):
-        instance.image = validated_data.get('image', instance.image)
-        instance.tags.clear()
-        tags_value = self.initial_data.get("tags")
-        instance.tags.set(tags_value)
-        IngredientInRecipe.objects.filter(recipe=instance).all().delete()
-        self.create_ingredients(validated_data.get('ingredients'), instance)
+        instance.image = validated_data.get("image", instance.image)
+        tags_data = validated_data.pop("tags", OrderedDict())
+        ingredients = validated_data.pop("ingredients", OrderedDict())
+        instance = super().update(instance, validated_data)
+        instance.tags.set(tags_data)
+        instance.ingredients.clear()
+        self.create_ingredients(recipe=instance, ingredients=ingredients)
         instance.save()
         return instance
 
@@ -188,24 +208,34 @@ class RecipeListSerializer(serializers.ModelSerializer):
     def get_ingredients(self, obj):
         recipe = obj
         ingredients = recipe.ingredients.values(
-            "id", "name", "measurement_unit", amount=F("ingredientinrecipe__amount")
+            "id",
+            "name",
+            "measurement_unit",
+            amount=F("ingredientinrecipe__amount")
         )
         return ingredients
 
     def get_is_favorited(self, obj):
-        request = self.context.get('request')
+        request = self.context.get("request")
         if not request:
             return False
         user = request.user
-        return user and user.is_authenticated and user.favorite.filter(recipe_id=obj).exists()
-
+        return (
+            user
+            and user.is_authenticated
+            and user.favorite.filter(recipe_id=obj).exists()
+        )
 
     def get_is_in_shopping_cart(self, obj):
-        request = self.context.get('request')
+        request = self.context.get("request")
         if not request:
             return False
         user = request.user
-        return user and user.is_authenticated and user.shopping_cart.filter(recipe_id=obj).exists()
+        return (
+            user
+            and user.is_authenticated
+            and user.shopping_cart.filter(recipe_id=obj).exists()
+        )
 
 
 class SmallRecipeSerializer(serializers.ModelSerializer):
@@ -241,14 +271,14 @@ class FollowSerializer(CustomUserSerializer):
         if not request:
             return False
         user = request.user
-        if user.following.filter(following=following).exists():
-            raise ValidationError(
-                message="You are already subscribed to this user",
+        if Follow.objects.filter(following=following, user=user).exists():
+            raise serializers.ValidationError(
+                "You are already subscribed to this user",
                 code=status.HTTP_400_BAD_REQUEST,
             )
         if user == following:
-            raise ValidationError(
-                message="You can not follow yourself", code=status.HTTP_400_BAD_REQUEST
+            raise serializers.ValidationError(
+                "You can not follow yourself", code=status.HTTP_400_BAD_REQUEST
             )
         return data
 
@@ -265,39 +295,3 @@ class FollowSerializer(CustomUserSerializer):
             recipes = recipes[: int(limit)]
         serializer = SmallRecipeSerializer(recipes, many=True, read_only=True)
         return serializer.data
-
-
-class FavoriteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Favorite
-        fields = ("user", "recipe")
-
-    def validate(self, data):
-        if Favorite.objects.filter(user=data["user"], recipe=data["recipe"]).exists():
-            raise serializers.ValidationError("the recipe is alredy added to favorited")
-        return data
-
-    def to_representation(self, instance):
-        return SmallRecipeSerializer(
-            instance.recipe, context={"request": self.context.get("request")}
-        ).data
-
-
-class ShoppingCartSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = ShoppingCart
-        fields = ("user", "recipe")
-
-    def validate(self, data):
-        if ShoppingCart.objects.filter(
-            user=data["user"], recipe=data["recipe"]
-        ).exists():
-            raise serializers.ValidationError(
-                "the recipe is alredy added to a shopping cart"
-            )
-        return data
-
-    def to_representation(self, instance):
-        return SmallRecipeSerializer(
-            instance.recipe, context={"request": self.context.get("request")}
-        ).data

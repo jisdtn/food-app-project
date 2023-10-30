@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 DEBUG = True
 
-ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = ['158.160.69.36', '127.0.0.1', 'localhost', 'foodygram.sytes.net']
 
 AUTH_USER_MODEL = "users.User"
 
