@@ -6,7 +6,6 @@ RUN pip3 install gunicorn==20.1.0
 RUN pip3 freeze > requirements.txt
 
 COPY . .
-COPY ../data ../data
 
 RUN pip3 install -r requirements.txt --no-cache-dir
 
