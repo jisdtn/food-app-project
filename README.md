@@ -4,8 +4,8 @@
 
 ```commandline
 * Администратор *
-login: 
-пароль: 
+login: superuser@yandex.ru
+пароль: zRtzvGb8
 ```
 
 Foodgram - это сайт, на котором пользователи могут 
