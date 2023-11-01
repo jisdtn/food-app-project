@@ -3,7 +3,7 @@
 ### [Foodgram](http://foodygram.sytes.net/ "К рецептам")
 
 ```commandline
-* Администратор *
+* Администратор *  # не могу понять, как подянуть картинки
 login: superuser@yandex.ru
 пароль: zRtzvGb8
 ```
