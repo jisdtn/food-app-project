@@ -3,31 +3,20 @@ from django.db.models import Sum
 from django.http import Http404, HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from recipes.models import (Favorite, Ingredient, IngredientInRecipe, Recipe,
+                            ShoppingCart, Tag)
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import ReadOnlyModelViewSet
 
-from recipes.models import (
-    Favorite,
-    Ingredient,
-    IngredientInRecipe,
-    Recipe,
-    ShoppingCart,
-    Tag,
-)
-
 from .filters import IngredientSearchFilter, RecipeFilter
 from .pagination import CustomPagination
 from .permissions import AuthorOrAdminOrReadOnly
-from .serializers import (
-    IngredientSerializer,
-    RecipeListSerializer,
-    RecipeSerializer,
-    SmallRecipeSerializer,
-    TagSerializer,
-)
+from .serializers import (IngredientSerializer, RecipeListSerializer,
+                          RecipeSerializer, SmallRecipeSerializer,
+                          TagSerializer)
 
 User = get_user_model()
 
@@ -50,8 +39,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return RecipeSerializer
 
     @action(
-        detail=True, methods=["POST", "DELETE"],
-        permission_classes=[IsAuthenticated]
+        detail=True, methods=["POST", "DELETE"], permission_classes=[IsAuthenticated]
     )
     def favorite(self, request, pk=None):
         if request.method == "POST":
@@ -60,8 +48,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return self.delete_obj(Favorite, request.user, pk)
 
     @action(
-        detail=True, methods=["POST", "DELETE"],
-        permission_classes=[IsAuthenticated]
+        detail=True, methods=["POST", "DELETE"], permission_classes=[IsAuthenticated]
     )
     def shopping_cart(self, request, pk=None):
         if request.method == "POST":
@@ -97,17 +84,14 @@ class RecipeViewSet(viewsets.ModelViewSet):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    @action(detail=False, methods=["get"],
-            permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
     def download_shopping_cart(self, request):
         user = request.user
         if not user.shopping_cart.exists():
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         ingredients = (
-            IngredientInRecipe.objects.filter(
-                recipe__shopping_cart__user=request.user
-            )
+            IngredientInRecipe.objects.filter(recipe__shopping_cart__user=request.user)
             .values("ingredient__name", "ingredient__measurement_unit")
             .annotate(amount=Sum("amount"))
         )
