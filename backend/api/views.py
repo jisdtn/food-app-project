@@ -103,9 +103,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 f"{ingredient['amount']} "
                 f"{ingredient['ingredient__measurement_unit']}"
             )
-        file = f"{user.username}_shopping_list.pdf"
-        response = HttpResponse(shopping_list, "Content-Type: application/pdf")
-        response["Content-Disposition"] = f"attachment; filename={file}"
+        file = f'{user.username}_shopping_list.pdf'
+        response = HttpResponse(shopping_list, сontent_type='application/pdf')
+        response["Content-Disposition"] = f'attachment; filename={file}'
         return response
 
 
