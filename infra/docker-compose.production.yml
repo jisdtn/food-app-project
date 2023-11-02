@@ -29,11 +29,13 @@ services:
       - static:/frontend_static
 
   nginx:
-    image: nginx:1.19.3
+    image: nginx:1.22.1
     env_file: .env
+    depends_on:
+      - backend
     ports:
       - "8000:80"
     volumes:
       - static:/staticfiles
       - media:/media
-
+      - ./nginx.conf:/etc/nginx/templates/default.conf.template
