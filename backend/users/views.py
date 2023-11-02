@@ -24,7 +24,8 @@ class CustomUserViewSet(UserViewSet):
             self.permission_classes = (IsAuthenticated,)
         return super().get_permissions()
 
-    @action(detail=True, methods=("post",), permission_classes=(IsAuthenticated,))
+    @action(detail=True, methods=("post",),
+            permission_classes=(IsAuthenticated,))
     def subscribe(self, request, **kwargs):
         user = request.user
         following_id = self.kwargs.get("id")
@@ -56,5 +57,7 @@ class CustomUserViewSet(UserViewSet):
         user = request.user
         queryset = User.objects.filter(following__user=user)
         pages = self.paginate_queryset(queryset)
-        serializer = FollowSerializer(pages, many=True, context={"request": request})
+        serializer = FollowSerializer(
+            pages, many=True, context={"request": request}
+        )
         return self.get_paginated_response(serializer.data)

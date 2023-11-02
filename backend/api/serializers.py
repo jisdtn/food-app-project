@@ -81,7 +81,9 @@ class CustomUserSerializer(UserSerializer):
 class RecipeSerializer(serializers.ModelSerializer):
     ingredients = AddIngredientSerializer(many=True)
     author = CustomUserSerializer(read_only=True)
-    tags = serializers.PrimaryKeyRelatedField(queryset=Tag.objects.all(), many=True)
+    tags = serializers.PrimaryKeyRelatedField(
+        queryset=Tag.objects.all(), many=True
+    )
     image = Base64ImageField(max_length=None)
 
     class Meta:
@@ -99,10 +101,14 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         if "ingredients" not in data:
-            raise serializers.ValidationError("you need at least one ingredient")
+            raise serializers.ValidationError(
+                "you need at least one ingredient"
+            )
 
         if "tags" not in data:
-            raise serializers.ValidationError("you have to choose at least one tag")
+            raise serializers.ValidationError(
+                "you have to choose at least one tag"
+            )
 
         if not data["image"]:
             raise serializers.ValidationError("add a picture")
@@ -117,10 +123,14 @@ class RecipeSerializer(serializers.ModelSerializer):
             try:
                 ingredient = get_object_or_404(Ingredient, id=i["id"])
             except Exception:
-                raise serializers.ValidationError("ingredient does not exist")
+                raise serializers.ValidationError(
+                    "ingredient does not exist"
+                )
 
             if ingredient in ingredients_list:
-                raise serializers.ValidationError("ingredients should be unique")
+                raise serializers.ValidationError(
+                    "ingredients should be unique"
+                )
             if int(i["amount"]) <= 0:
                 raise serializers.ValidationError(
                     "ingredient amount should be at least 1"
@@ -131,7 +141,9 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def validate_tags(self, tags):
         if len(tags) == 0:
-            raise serializers.ValidationError("you have to choose at least one tag")
+            raise serializers.ValidationError(
+                "you have to choose at least one tag"
+            )
         if len(tags) != len(set(tags)):
             raise serializers.ValidationError("tags should be unique")
 
@@ -139,7 +151,9 @@ class RecipeSerializer(serializers.ModelSerializer):
 
     def create_ingredients(self, ingredients, recipe):
         if not ingredients:
-            raise serializers.ValidationError("you need at least one ingredient")
+            raise serializers.ValidationError(
+                "you need at least one ingredient"
+            )
         for i in ingredients:
             ingredient = Ingredient.objects.get(id=i["id"])
             IngredientInRecipe.objects.create(
@@ -190,7 +204,10 @@ class RecipeListSerializer(serializers.ModelSerializer):
     def get_ingredients(self, obj):
         recipe = obj
         ingredients = recipe.ingredients.values(
-            "id", "name", "measurement_unit", amount=F("ingredientinrecipe__amount")
+            "id",
+            "name",
+            "measurement_unit",
+            amount=F("ingredientinrecipe__amount")
         )
         return ingredients
 

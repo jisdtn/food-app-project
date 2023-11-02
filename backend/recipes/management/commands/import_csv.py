@@ -14,7 +14,8 @@ class Command(BaseCommand):
         ) as csv_file:
             reader = csv.reader(csv_file)
             result = Ingredient.objects.bulk_create(
-                Ingredient(name=data[0], measurement_unit=data[1]) for data in reader
+                Ingredient(name=data[0],
+                           measurement_unit=data[1]) for data in reader
             )
 
         self.stdout.write("success, inserted: " + str(len(result)))

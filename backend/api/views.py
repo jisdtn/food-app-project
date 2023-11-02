@@ -39,7 +39,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
         return RecipeSerializer
 
     @action(
-        detail=True, methods=["POST", "DELETE"], permission_classes=[IsAuthenticated]
+        detail=True, methods=["POST", "DELETE"],
+        permission_classes=[IsAuthenticated]
     )
     def favorite(self, request, pk=None):
         if request.method == "POST":
@@ -48,7 +49,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return self.delete_obj(Favorite, request.user, pk)
 
     @action(
-        detail=True, methods=["POST", "DELETE"], permission_classes=[IsAuthenticated]
+        detail=True, methods=["POST", "DELETE"],
+        permission_classes=[IsAuthenticated]
     )
     def shopping_cart(self, request, pk=None):
         if request.method == "POST":
@@ -84,14 +86,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    @action(detail=False, methods=["get"], permission_classes=[IsAuthenticated])
+    @action(detail=False, methods=["get"],
+            permission_classes=[IsAuthenticated])
     def download_shopping_cart(self, request):
         user = request.user
         if not user.shopping_cart.exists():
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         ingredients = (
-            IngredientInRecipe.objects.filter(recipe__shopping_cart__user=request.user)
+            IngredientInRecipe.objects.filter(
+                recipe__shopping_cart__user=request.user
+            )
             .values("ingredient__name", "ingredient__measurement_unit")
             .annotate(amount=Sum("amount"))
         )
@@ -103,11 +108,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
                 f"{ingredient['amount']} "
                 f"{ingredient['ingredient__measurement_unit']}"
             )
-        file = f'{user.username}_shopping_list.pdf'
-        response = HttpResponse(shopping_list, 'Content-Type:application/pdf')
-        response["Content-Disposition"] = (
-            f'attachment; filename={file}'
-        )
+        file = f"{user.username}_shopping_list.pdf"
+        response = HttpResponse(shopping_list, "Content-Type:application/pdf")
+        response["Content-Disposition"] = f"attachment; filename={file}"
         return response
 
 

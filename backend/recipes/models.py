@@ -31,19 +31,29 @@ class Tag(models.Model):
 
 
 class Recipe(models.Model):
-    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="recipes")
-    ingredients = models.ManyToManyField(Ingredient, through="IngredientInRecipe")
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="recipes"
+    )
+    ingredients = models.ManyToManyField(
+        Ingredient, through="IngredientInRecipe"
+    )
     tags = models.ManyToManyField(Tag, related_name="recipes")
-    image = models.ImageField(upload_to="recipes/images", null=True, blank=True)
+    image = models.ImageField(
+        upload_to="recipes/images", null=True, blank=True
+    )
     name = models.CharField(max_length=200)
     text = models.TextField()
-    cooking_time = models.IntegerField(validators=[MinValueValidator(1)])
+    cooking_time = models.IntegerField(
+        validators=[MinValueValidator(1)]
+    )
     pub_date = models.DateTimeField("Дата публикации", auto_now_add=True)
 
     class Meta:
         ordering = ("-pub_date",)
         constraints = [
-            models.UniqueConstraint(fields=["name", "author"], name="recipe_unique")
+            models.UniqueConstraint(
+                fields=["name", "author"], name="recipe_unique"
+            )
         ]
 
     def __str__(self):
@@ -65,7 +75,10 @@ class IngredientInRecipe(models.Model):
 
 class Favorite(models.Model):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="favorite", verbose_name="User"
+        User,
+        on_delete=models.CASCADE,
+        related_name="favorite",
+        verbose_name="User"
     )
     recipe = models.ForeignKey(
         Recipe,
@@ -111,7 +124,8 @@ class ShoppingCart(models.Model):
         verbose_name = "Shopping_cart"
         constraints = [
             models.UniqueConstraint(
-                fields=["user", "recipe"], name="shopping_cart_user_recept_unique"
+                fields=["user", "recipe"],
+                name="shopping_cart_user_recept_unique"
             )
         ]
 
