@@ -2,12 +2,6 @@
 
 ### [Foodgram](http://foodygram.sytes.net/ "К рецептам")
 
-```commandline
-* Администратор *
-login: superuser@yandex.ru
-пароль: zRtzvGb8
-```
-
 Foodgram - это сайт, на котором пользователи могут 
 публиковать рецепты, добавлять чужие рецепты в избранное и подписываться на публикации других авторов. 
 Пользователям сайта также будет доступен сервис «Список покупок». 
@@ -56,7 +50,7 @@ pip install -r requirements.txt
 python3 manage.py migrate
 ```
 
-Запустить проект:
+Запустить backend проекта:
 
 ```
 python3 manage.py runserver
