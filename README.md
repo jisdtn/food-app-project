@@ -10,7 +10,7 @@
 Реализован backend, API, задеплоен на сервер в контейнерах: 
 nginx, PostgreSQL и Django через docker-compose 
 ```
-### Запуск проекта в dev-режиме:
+### Запуск проекта в dev-режиме (только бэк):
 
 Клонировать репозиторий и перейти в него в командной строке:
 
@@ -33,6 +33,10 @@ source venv/bin/activate
 ```
 
 Установить зависимости из файла requirements.txt:
+
+```
+cd backend
+```
 
 ```
 python3 -m pip install --upgrade pip
